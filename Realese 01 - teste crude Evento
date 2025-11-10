@@ -1,0 +1,135 @@
+import unittest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Importação duplicada, mas útil se for um arquivo separado
+# from selenium import webdriver 
+
+class TestCrudEvento(unittest.TestCase):
+    
+    def setUp(self):
+        # Configuração do WebDriver (Ajuste se necessário)
+        self.driver = webdriver.Chrome() 
+        self.base_url = "http://localhost:8080/sistema" # URL base do seu sistema
+        self.driver.implicitly_wait(10)
+        self.test_event_name = "Evento Teste Selenium"
+        self.driver.maximize_window()
+
+    def test_crud_evento_completo(self):
+        driver = self.driver
+        driver.get(self.base_url + "/login")
+
+        # 1. Login como Organizador (Necessário para Inserir/Editar - RFS05, RFS06)
+        # Substitua pelos seus seletores de login de um Organizador
+        driver.find_element(By.ID, "email").send_keys("organizador@evento.com")
+        driver.find_element(By.ID, "senha").send_keys("OrgSenha123")
+        driver.find_element(By.ID, "btn-login").click()
+        
+        # Espera pela página principal
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/dashboard")
+        )
+
+        # ----------------------------------------------------------------------
+        # C - CREATE (RFS05 - Inserir Evento)
+        driver.get(self.base_url + "/eventos/novo") # Página de cadastro
+        print("-> Testando CREATE (Inserir Evento)")
+
+        # Preenchimento dos campos obrigatórios (Tabela 02)
+        driver.find_element(By.ID, "nomeEvento").send_keys(self.test_event_name)
+        driver.find_element(By.ID, "descricao").send_keys("Descrição do evento de teste.")
+        
+        # Data e Hora Início (Exemplo de formato DD/MM/AAAA HH:MM)
+        driver.find_element(By.ID, "dataInicio").send_keys("30/12/2026 10:00") 
+        driver.find_element(By.ID, "dataFim").send_keys("30/12/2026 18:00")
+        
+        # Local (CEP e outros) - Assumindo que o campo é composto. Adapte conforme sua tela.
+        driver.find_element(By.ID, "localCep").send_keys("37500000")
+        driver.find_element(By.ID, "localRua").send_keys("Rua Teste")
+
+        # Selecionar Categoria - Conferência
+        driver.find_element(By.XPATH, "//select[@id='categoria']/option[text()='Conferência']").click()
+        
+        driver.find_element(By.ID, "btn-salvar-evento").click()
+        
+        # Verifica se o cadastro foi bem sucedido
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/eventos")
+        )
+        self.assertTrue("Evento cadastrado com sucesso" in driver.page_source)
+
+        # ----------------------------------------------------------------------
+        # R - READ (RFS08 - Consultar Evento)
+        print("-> Testando READ (Consultar Evento)")
+        
+        driver.get(self.base_url + "/eventos") # Lista de eventos
+        # Filtro por Nome do Evento (RFS08 - Filtros)
+        driver.find_element(By.ID, "filtro-nome").send_keys(self.test_event_name)
+        driver.find_element(By.ID, "btn-filtrar").click()
+        
+        # Espera o resultado e verifica o Nome do Evento (RFS08 - Resultados)
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]"))
+        )
+        self.assertTrue(self.test_event_name in driver.page_source)
+
+        # ----------------------------------------------------------------------
+        # U - UPDATE (RFS06 - Editar Evento)
+        print("-> Testando UPDATE (Editar Evento)")
+
+        # Clica no botão de editar
+        edit_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]/../td/a[contains(text(), 'Editar')]")
+        edit_button.click()
+
+        # Espera pela página de edição
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/eventos/editar/")
+        )
+
+        # Altera a Descrição (Todos os campos da Tabela 02 podem ser editados - RFS06)
+        nova_descricao = "Nova descrição editada via Selenium."
+        descricao_field = driver.find_element(By.ID, "descricao")
+        descricao_field.clear()
+        descricao_field.send_keys(nova_descricao)
+        
+        driver.find_element(By.ID, "btn-salvar-evento").click()
+        
+        # Verifica se a edição foi bem sucedida
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/eventos")
+        )
+        self.assertTrue("Evento alterado com sucesso" in driver.page_source)
+
+        # ----------------------------------------------------------------------
+        # D - DELETE (RFS07 - Remover Evento)
+        # ATENÇÃO: RFS07 tem restrição: Apenas eventos sem nenhum ingresso vendido podem ser removidos.
+        print("-> Testando DELETE (Remover Evento)")
+
+        # Filtra novamente, se necessário, ou volta para a lista
+        driver.find_element(By.ID, "filtro-nome").clear()
+        driver.find_element(By.ID, "filtro-nome").send_keys(self.test_event_name)
+        driver.find_element(By.ID, "btn-filtrar").click()
+        
+        # Clica no botão de remover
+        delete_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]/../td/button[contains(text(), 'Remover')]")
+        delete_button.click()
+        
+        # Se houver pop-up de confirmação, aceite-o
+        # alert = driver.switch_to.alert
+        # alert.accept()
+        
+        # Verifica se a remoção foi bem sucedida
+        WebDriverWait(driver, 10).until(
+            EC.invisibility_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]"))
+        )
+        self.assertFalse(self.test_event_name in driver.page_source)
+        print("-> CRUD Evento Completo: SUCESSO")
+
+    def tearDown(self):
+        # Encerra o navegador
+        self.driver.quit()
+
+if __name__ == '__main__':
+    unittest.main(argv=['first-arg-is-ignored'], exit=False)
