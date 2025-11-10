@@ -1,0 +1,130 @@
+import unittest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+class TestCrudUsuario(unittest.TestCase):
+    
+    def setUp(self):
+        # Configuração do WebDriver (Mude para o seu driver e caminho)
+        # Exemplo com Chrome:
+        # self.driver = webdriver.Chrome(executable_path='/caminho/para/chromedriver')
+        self.driver = webdriver.Chrome() # Se o driver estiver no PATH
+        self.base_url = "http://localhost:8080/sistema" # URL base do seu sistema
+        self.driver.implicitly_wait(10) # Espera implícita
+        self.test_user_email = "teste.selenium@evento.com"
+        self.driver.maximize_window()
+
+    def test_crud_usuario_completo(self):
+        driver = self.driver
+        driver.get(self.base_url + "/login") # Assumindo a necessidade de Login (RNF01)
+
+        # 1. Login como Administrador (Necessário para Consultar/Remover - RFS04, RFS03)
+        # Substitua pelos seus seletores de login
+        driver.find_element(By.ID, "email").send_keys("admin@evento.com")
+        driver.find_element(By.ID, "senha").send_keys("Senha123")
+        driver.find_element(By.ID, "btn-login").click()
+        
+        # Espera pela página principal ou de CRUD de usuários
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/dashboard")
+        )
+
+        # ----------------------------------------------------------------------
+        # C - CREATE (RFS01 - Inserir Usuário)
+        driver.get(self.base_url + "/usuarios/novo") # Página de cadastro
+        print("-> Testando CREATE (Inserir Usuário)")
+
+        # Preenchimento dos campos obrigatórios (Tabela 01)
+        driver.find_element(By.ID, "nomeCompleto").send_keys("Usuário Teste Selenium")
+        driver.find_element(By.ID, "email").send_keys(self.test_user_email)
+        driver.find_element(By.ID, "senha").send_keys("Teste@123")
+        driver.find_element(By.ID, "cpfCnpj").send_keys("11122233344") # Formato CPF
+        
+        # Selecionar Perfil - Participante
+        # Exemplo para select/dropdown, ajuste se for radio/checkbox
+        driver.find_element(By.XPATH, "//select[@id='perfil']/option[text()='Participante']").click() 
+        
+        driver.find_element(By.ID, "btn-salvar-usuario").click()
+        
+        # Verifica se o cadastro foi bem sucedido (assumindo redirecionamento ou mensagem)
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/usuarios") # Redirecionamento para lista de usuários
+        )
+        self.assertTrue("Usuário cadastrado com sucesso" in driver.page_source) # Verifica a mensagem de sucesso (Ajuste a mensagem real)
+
+        # ----------------------------------------------------------------------
+        # R - READ (RFS04 - Consultar Usuário)
+        print("-> Testando READ (Consultar Usuário)")
+        
+        # Filtro por E-mail (RFS04 - Filtros)
+        driver.get(self.base_url + "/usuarios") # Lista de usuários
+        driver.find_element(By.ID, "filtro-email").send_keys(self.test_user_email)
+        driver.find_element(By.ID, "btn-filtrar").click()
+        
+        # Espera o resultado e verifica se o nome do usuário está na lista (RFS04 - Resultados)
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//td[contains(text(), 'Usuário Teste Selenium')]"))
+        )
+        self.assertTrue("Usuário Teste Selenium" in driver.page_source)
+
+        # ----------------------------------------------------------------------
+        # U - UPDATE (RFS02 - Editar Usuário)
+        print("-> Testando UPDATE (Editar Usuário)")
+
+        # Clica no botão de editar (Assumindo que ele está na linha do resultado)
+        # Ajuste o seletor conforme a implementação da sua tabela
+        edit_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]/../td/a[contains(text(), 'Editar')]")
+        edit_button.click()
+
+        # Espera pela página de edição
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/usuarios/editar/")
+        )
+
+        # Altera o nome (Todos os campos da Tabela 01 podem ser editados - RFS02)
+        novo_nome = "Usuário Teste Editado"
+        nome_field = driver.find_element(By.ID, "nomeCompleto")
+        nome_field.clear()
+        nome_field.send_keys(novo_nome)
+        
+        driver.find_element(By.ID, "btn-salvar-usuario").click()
+        
+        # Verifica se a edição foi bem sucedida
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("/usuarios")
+        )
+        self.assertTrue("Usuário alterado com sucesso" in driver.page_source)
+
+        # ----------------------------------------------------------------------
+        # D - DELETE (RFS03 - Remover Usuário)
+        print("-> Testando DELETE (Remover Usuário)")
+        
+        # Filtra novamente para garantir que o usuário está visível
+        driver.find_element(By.ID, "filtro-email").clear()
+        driver.find_element(By.ID, "filtro-email").send_keys(self.test_user_email)
+        driver.find_element(By.ID, "btn-filtrar").click()
+
+        # Clica no botão de remover (Assumindo que está na linha)
+        # Ajuste o seletor. Pode envolver a confirmação via pop-up/modal.
+        delete_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]/../td/button[contains(text(), 'Remover')]")
+        delete_button.click()
+        
+        # Se houver pop-up de confirmação:
+        # alert = driver.switch_to.alert
+        # alert.accept()
+        
+        # Verifica se a remoção foi bem sucedida
+        WebDriverWait(driver, 10).until(
+            EC.invisibility_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]"))
+        )
+        self.assertFalse(novo_nome in driver.page_source)
+        print("-> CRUD Usuário Completo: SUCESSO")
+
+    def tearDown(self):
+        # Encerra o navegador
+        self.driver.quit()
+
+if __name__ == '__main__':
+    unittest.main(argv=['first-arg-is-ignored'], exit=False)
