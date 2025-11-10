@@ -37,6 +37,6 @@ Utilize os recursos externos abaixo para rastrear o progresso, visualizar o cron
 
 | Nome Completo | Registro Acadêmico (RA) |
 | :--- | :--- |
-| Davi Henrique Maia Braga | 202401635 |
+| Davi Henrique Maia Braga | 2024016350 |
 | Pedro Arthur Almeida de Matos | 2025008254 |
 | Vitor Riveli de Souza Lopes | 2025011714 |
