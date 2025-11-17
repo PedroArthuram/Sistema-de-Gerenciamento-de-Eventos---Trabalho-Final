@@ -1,130 +1,362 @@
-import unittest
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciamento de Usuários - Sistema de Eventos</title>
 
-class TestCrudUsuario(unittest.TestCase):
-    
-    def setUp(self):
-        # Configuração do WebDriver (Mude para o seu driver e caminho)
-        # Exemplo com Chrome:
-        # self.driver = webdriver.Chrome(executable_path='/caminho/para/chromedriver')
-        self.driver = webdriver.Chrome() # Se o driver estiver no PATH
-        self.base_url = "http://localhost:8080/sistema" # URL base do seu sistema
-        self.driver.implicitly_wait(10) # Espera implícita
-        self.test_user_email = "teste.selenium@evento.com"
-        self.driver.maximize_window()
+  <style>
+    /* ======== GLOBAL ======== */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f3f5f7;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: #333;
+    }
 
-    def test_crud_usuario_completo(self):
-        driver = self.driver
-        driver.get(self.base_url + "/login") # Assumindo a necessidade de Login (RNF01)
+    h1, h2 {
+      margin: 0;
+      padding: 0;
+      font-weight: 600;
+    }
 
-        # 1. Login como Administrador (Necessário para Consultar/Remover - RFS04, RFS03)
-        # Substitua pelos seus seletores de login
-        driver.find_element(By.ID, "email").send_keys("admin@evento.com")
-        driver.find_element(By.ID, "senha").send_keys("Senha123")
-        driver.find_element(By.ID, "btn-login").click()
-        
-        # Espera pela página principal ou de CRUD de usuários
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/dashboard")
-        )
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 20px;
+    }
 
-        # ----------------------------------------------------------------------
-        # C - CREATE (RFS01 - Inserir Usuário)
-        driver.get(self.base_url + "/usuarios/novo") # Página de cadastro
-        print("-> Testando CREATE (Inserir Usuário)")
+    /* ======== HEADER ======== */
+    .header {
+      background: #1a73e8;
+      color: #fff;
+      padding: 20px 40px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
 
-        # Preenchimento dos campos obrigatórios (Tabela 01)
-        driver.find_element(By.ID, "nomeCompleto").send_keys("Usuário Teste Selenium")
-        driver.find_element(By.ID, "email").send_keys(self.test_user_email)
-        driver.find_element(By.ID, "senha").send_keys("Teste@123")
-        driver.find_element(By.ID, "cpfCnpj").send_keys("11122233344") # Formato CPF
-        
-        # Selecionar Perfil - Participante
-        # Exemplo para select/dropdown, ajuste se for radio/checkbox
-        driver.find_element(By.XPATH, "//select[@id='perfil']/option[text()='Participante']").click() 
-        
-        driver.find_element(By.ID, "btn-salvar-usuario").click()
-        
-        # Verifica se o cadastro foi bem sucedido (assumindo redirecionamento ou mensagem)
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/usuarios") # Redirecionamento para lista de usuários
-        )
-        self.assertTrue("Usuário cadastrado com sucesso" in driver.page_source) # Verifica a mensagem de sucesso (Ajuste a mensagem real)
+    .header h1 {
+      font-size: 26px;
+      letter-spacing: 1px;
+    }
 
-        # ----------------------------------------------------------------------
-        # R - READ (RFS04 - Consultar Usuário)
-        print("-> Testando READ (Consultar Usuário)")
-        
-        # Filtro por E-mail (RFS04 - Filtros)
-        driver.get(self.base_url + "/usuarios") # Lista de usuários
-        driver.find_element(By.ID, "filtro-email").send_keys(self.test_user_email)
-        driver.find_element(By.ID, "btn-filtrar").click()
-        
-        # Espera o resultado e verifica se o nome do usuário está na lista (RFS04 - Resultados)
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f"//td[contains(text(), 'Usuário Teste Selenium')]"))
-        )
-        self.assertTrue("Usuário Teste Selenium" in driver.page_source)
+    /* ======== CARDS ======== */
+    .card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
+    }
 
-        # ----------------------------------------------------------------------
-        # U - UPDATE (RFS02 - Editar Usuário)
-        print("-> Testando UPDATE (Editar Usuário)")
+    .card h2 {
+      margin-bottom: 20px;
+      color: #222;
+      border-bottom: 2px solid #1a73e8;
+      padding-bottom: 6px;
+      font-size: 20px;
+    }
 
-        # Clica no botão de editar (Assumindo que ele está na linha do resultado)
-        # Ajuste o seletor conforme a implementação da sua tabela
-        edit_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]/../td/a[contains(text(), 'Editar')]")
-        edit_button.click()
+    /* ======== FORM ======== */
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 12px 0 4px;
+    }
 
-        # Espera pela página de edição
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/usuarios/editar/")
-        )
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      background: #fafafa;
+    }
 
-        # Altera o nome (Todos os campos da Tabela 01 podem ser editados - RFS02)
-        novo_nome = "Usuário Teste Editado"
-        nome_field = driver.find_element(By.ID, "nomeCompleto")
-        nome_field.clear()
-        nome_field.send_keys(novo_nome)
-        
-        driver.find_element(By.ID, "btn-salvar-usuario").click()
-        
-        # Verifica se a edição foi bem sucedida
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/usuarios")
-        )
-        self.assertTrue("Usuário alterado com sucesso" in driver.page_source)
+    /* ======== BUTTONS ======== */
+    button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      margin-right: 8px;
+      margin-top: 15px;
+      font-weight: 600;
+      transition: 0.25s;
+    }
 
-        # ----------------------------------------------------------------------
-        # D - DELETE (RFS03 - Remover Usuário)
-        print("-> Testando DELETE (Remover Usuário)")
-        
-        # Filtra novamente para garantir que o usuário está visível
-        driver.find_element(By.ID, "filtro-email").clear()
-        driver.find_element(By.ID, "filtro-email").send_keys(self.test_user_email)
-        driver.find_element(By.ID, "btn-filtrar").click()
+    #saveBtn {
+      background: #1a73e8;
+      color: white;
+    }
 
-        # Clica no botão de remover (Assumindo que está na linha)
-        # Ajuste o seletor. Pode envolver a confirmação via pop-up/modal.
-        delete_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]/../td/button[contains(text(), 'Remover')]")
-        delete_button.click()
-        
-        # Se houver pop-up de confirmação:
-        # alert = driver.switch_to.alert
-        # alert.accept()
-        
-        # Verifica se a remoção foi bem sucedida
-        WebDriverWait(driver, 10).until(
-            EC.invisibility_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_user_email}')]"))
-        )
-        self.assertFalse(novo_nome in driver.page_source)
-        print("-> CRUD Usuário Completo: SUCESSO")
+    #saveBtn:hover {
+      background: #155cbc;
+    }
 
-    def tearDown(self):
-        # Encerra o navegador
-        self.driver.quit()
+    #clearBtn {
+      background: #777;
+      color: #fff;
+    }
 
-if __name__ == '__main__':
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    #clearBtn:hover {
+      background: #555;
+    }
+
+    #buscarBtn {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    #buscarBtn:hover {
+      background: #155cbc;
+    }
+
+    #resetBtn {
+      background: #d9534f;
+      color: #fff;
+    }
+
+    #resetBtn:hover {
+      background: #b52b27;
+    }
+
+    /* ======== TABLE ======== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    thead {
+      background: #1a73e8;
+      color: white;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    tbody tr:hover {
+      background: #f5f9ff;
+    }
+
+    .actions button {
+      padding: 6px 12px;
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 6px;
+      margin-right: 5px;
+    }
+
+    .actions button:hover {
+      background: #155cbc;
+    }
+
+    .actions button:nth-child(2) {
+      background: #d9534f;
+    }
+
+    .actions button:nth-child(2):hover {
+      background: #b52b27;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- ======== HEADER ======== -->
+  <div class="header">
+    <h1>Sistema de Eventos — Gerenciamento de Usuários</h1>
+  </div>
+
+  <div class="container">
+
+    <!-- ======== CARD - FORM ======== -->
+    <div class="card">
+      <h2>Cadastro e Edição de Usuários</h2>
+
+      <form id="userForm" data-mode="create">
+        <input type="hidden" id="userId" />
+
+        <label>Nome completo*</label>
+        <input id="nome" required />
+
+        <label>E-mail*</label>
+        <input id="email" required type="email" />
+
+        <label>Senha*</label>
+        <input id="senha" required type="password" />
+
+        <label>CPF/CNPJ</label>
+        <input id="cpfcnpj" />
+
+        <label>Tipo de Perfil*</label>
+        <select id="perfil" required>
+          <option value="">-- selecione --</option>
+          <option value="Participante">Participante</option>
+          <option value="Organizador">Organizador</option>
+          <option value="Administrador">Administrador</option>
+        </select>
+
+        <label>Celular</label>
+        <input id="celular" placeholder="(XX) XXXXX-XXXX" />
+
+        <label>Endereço</label>
+        <input id="endereco" />
+
+        <button id="saveBtn" type="button">Salvar</button>
+        <button id="clearBtn" type="button">Limpar</button>
+      </form>
+    </div>
+
+    <!-- ======== CARD - SEARCH ======== -->
+    <div class="card">
+      <h2>Consulta de Usuários</h2>
+
+      <label>Filtro (Nome/E-mail/CPF)</label>
+      <input id="filtro" />
+
+      <button id="buscarBtn" type="button">Buscar</button>
+      <button id="resetBtn" type="button">Reset</button>
+
+      <table id="usersTable" aria-label="tabela-usuarios">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Celular</th>
+            <th>Perfil</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ======== SCRIPT (MESMO FUNCIONAMENTO) ======== -->
+  <script>
+    let users = [];
+    let nextId = 1;
+
+    function renderTable(list) {
+      const tbody = document.querySelector('#usersTable tbody');
+      tbody.innerHTML = '';
+      list.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.nome}</td>
+          <td>${u.email}</td>
+          <td>${u.celular || ''}</td>
+          <td>${u.perfil}</td>
+          <td class="actions">
+            <button data-action="edit" data-id="${u.id}">Editar</button>
+            <button data-action="delete" data-id="${u.id}">Remover</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function resetForm() {
+      document.getElementById('userForm').reset();
+      document.getElementById('userId').value = '';
+      document.getElementById('userForm').dataset.mode = 'create';
+    }
+
+    function saveUser() {
+      const id = document.getElementById('userId').value;
+      const nome = document.getElementById('nome').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const cpfcnpj = document.getElementById('cpfcnpj').value.trim();
+      const perfil = document.getElementById('perfil').value;
+      const celular = document.getElementById('celular').value.trim();
+      const endereco = document.getElementById('endereco').value.trim();
+
+      if (!nome || !email || !senha || !perfil) { 
+        alert('Preencha os campos obrigatórios'); 
+        return; 
+      }
+
+      if (id) {
+        const u = users.find(x => x.id == id);
+        if (u) {
+          u.nome = nome;
+          u.email = email;
+          u.senha = senha;
+          u.cpfcnpj = cpfcnpj;
+          u.perfil = perfil;
+          u.celular = celular;
+          u.endereco = endereco;
+          alert('Usuário atualizado');
+        }
+      } else {
+        users.push({ id: nextId++, nome, email, senha, cpfcnpj, perfil, celular, endereco });
+        alert('Usuário cadastrado');
+      }
+
+      renderTable(users);
+      resetForm();
+    }
+
+    function editarUsuario(id) {
+      const u = users.find(x => x.id == id);
+      if (!u) return;
+
+      document.getElementById('userId').value = u.id;
+      document.getElementById('nome').value = u.nome;
+      document.getElementById('email').value = u.email;
+      document.getElementById('senha').value = u.senha;
+      document.getElementById('cpfcnpj').value = u.cpfcnpj;
+      document.getElementById('perfil').value = u.perfil;
+      document.getElementById('celular').value = u.celular;
+      document.getElementById('endereco').value = u.endereco;
+
+      document.getElementById('userForm').dataset.mode = 'edit';
+    }
+
+    function removerUsuario(id) {
+      if (!confirm('Confirma remoção do usuário?')) return;
+      users = users.filter(x => x.id != id);
+      renderTable(users);
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveUser);
+    document.getElementById('clearBtn').addEventListener('click', resetForm);
+
+    document.getElementById('buscarBtn').addEventListener('click', () => {
+      const f = document.getElementById('filtro').value.trim().toLowerCase();
+      const res = users.filter(u =>
+        (u.nome + u.email + u.cpfcnpj).toLowerCase().includes(f)
+      );
+      renderTable(res);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('filtro').value = '';
+      renderTable(users);
+    });
+
+    document.querySelector('#usersTable tbody').addEventListener('click', ev => {
+      const btn = ev.target.closest('button');
+      if (!btn) return;
+
+      const id = parseInt(btn.dataset.id);
+      if (btn.dataset.action === 'edit') editarUsuario(id);
+      if (btn.dataset.action === 'delete') removerUsuario(id);
+    });
+
+    renderTable(users);
+  </script>
+
+</body>
+</html>
