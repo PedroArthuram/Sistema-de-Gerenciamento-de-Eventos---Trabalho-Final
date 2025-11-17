@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>CRUD Inscrições</title>
+<style>
+  body {
+    background: #0a0f0a;
+    color: #00ff88;
+    font-family: Consolas, monospace;
+    margin: 0;
+    padding: 0;
+  }
+  .header {
+    background: #00aa55;
+    padding: 22px;
+    font-size: 24px;
+    text-align: center;
+    color: #fff;
+    font-weight: bold;
+  }
+  .container {
+    max-width: 1000px;
+    margin: 20px auto;
+  }
+  .card {
+    background: #001a10;
+    border: 1px solid #00ff88;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+  }
+  label { display:block; margin-top:10px; }
+  input, select {
+    width:100%; padding:10px;
+    background:#003322; border:none; color:#00ff88;
+    border-radius:5px; margin-top:4px;
+  }
+  button {
+    background:#00ff88; color:#001a10;
+    border:none; padding:10px 20px;
+    margin-top:15px; cursor:pointer;
+    border-radius:6px; font-weight:bold;
+  }
+  table {
+    width:100%; margin-top:20px;
+    border-collapse:collapse;
+  }
+  th { background:#00aa55; color:#fff; padding:10px; }
+  td { border-bottom:1px solid #004422; padding:10px; }
+  .actions button {
+    background:#00aa55; color:#fff; margin-right:6px;
+  }
+  .actions .del { background:#bb0000; }
+</style>
+</head>
+
+<body>
+
+<div class="header">🟢 Realizar / Gerenciar Inscrições</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Cadastro / Edição de Inscrição</h2>
+
+    <form id="inscForm" data-mode="create">
+      <input type="hidden" id="inscId">
+
+      <label>Participante</label>
+      <input id="participante">
+
+      <label>Evento</label>
+      <select id="evento">
+        <option>TechConf 2025</option>
+        <option>Festival de Rock</option>
+      </select>
+
+      <label>Lote</label>
+      <select id="lote">
+        <option>Lote 1</option>
+        <option>Lote VIP</option>
+      </select>
+
+      <label>Status</label>
+      <select id="status">
+        <option>Pendente</option>
+        <option>Confirmado</option>
+        <option>Cancelado</option>
+      </select>
+
+      <button id="save">Salvar</button>
+      <button type="button" id="clear">Limpar</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Consultar Inscrições</h2>
+
+    <label>Filtro</label>
+    <input id="filtro">
+
+    <button id="buscar">Buscar</button>
+    <button id="reset">Reset</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Participante</th>
+          <th>Evento</th>
+          <th>Lote</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let inscr = [];
+  let next = 1;
+
+  function render(list){
+    lista.innerHTML = "";
+    list.forEach(i=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i.participante}</td>
+        <td>${i.evento}</td>
+        <td>${i.lote}</td>
+        <td>${i.status}</td>
+        <td class="actions">
+          <button class="edit" data-id="${i.id}">Editar</button>
+          <button class="del" data-id="${i.id}">Excluir</button>
+        </td>
+      `;
+      lista.appendChild(tr);
+    });
+  }
+
+  save.onclick = function(e){
+    e.preventDefault();
+    const obj = {
+      participante:participante.value,
+      evento:evento.value,
+      lote:lote.value,
+      status:status.value
+    };
+    const id = inscId.value;
+    if(id){
+      let i = inscr.find(x=>x.id==id);
+      Object.assign(i, obj);
+      alert("Inscrição atualizada!");
+    } else {
+      obj.id = next++;
+      inscr.push(obj);
+      alert("Inscrição realizada!");
+    }
+    render(inscr);
+    inscForm.reset();
+  }
+
+  lista.onclick = function(e){
+    if(e.target.classList.contains("edit")){
+      const x = inscr.find(i=>i.id==e.target.dataset.id);
+      inscId.value = x.id;
+      participante.value = x.participante;
+      evento.value = x.evento;
+      lote.value = x.lote;
+      status.value = x.status;
+    }
+    if(e.target.classList.contains("del")){
+      if(confirm("Excluir inscrição?")){
+        inscr = inscr.filter(i=>i.id!=e.target.dataset.id);
+        render(inscr);
+      }
+    }
+  }
+
+  buscar.onclick = function(){
+    const f = filtro.value.toLowerCase();
+    render(inscr.filter(i=>
+      (i.participante+i.evento+i.lote).toLowerCase().includes(f)
+    ));
+  }
+
+  reset.onclick = function(){
+    filtro.value = "";
+    render(inscr);
+  }
+</script>
+
+</body>
+</html>
