@@ -1,135 +1,358 @@
-import unittest
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciamento de Eventos - Dashboard</title>
 
-# Importação duplicada, mas útil se for um arquivo separado
-# from selenium import webdriver 
+  <style>
+    /* -------- GLOBAL -------- */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #1a1a1d;
+      color: #e6e6e6;
+    }
 
-class TestCrudEvento(unittest.TestCase):
-    
-    def setUp(self):
-        # Configuração do WebDriver (Ajuste se necessário)
-        self.driver = webdriver.Chrome() 
-        self.base_url = "http://localhost:8080/sistema" # URL base do seu sistema
-        self.driver.implicitly_wait(10)
-        self.test_event_name = "Evento Teste Selenium"
-        self.driver.maximize_window()
+    h1, h2 {
+      margin: 0;
+      font-weight: 600;
+    }
 
-    def test_crud_evento_completo(self):
-        driver = self.driver
-        driver.get(self.base_url + "/login")
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 20px;
+    }
 
-        # 1. Login como Organizador (Necessário para Inserir/Editar - RFS05, RFS06)
-        # Substitua pelos seus seletores de login de um Organizador
-        driver.find_element(By.ID, "email").send_keys("organizador@evento.com")
-        driver.find_element(By.ID, "senha").send_keys("OrgSenha123")
-        driver.find_element(By.ID, "btn-login").click()
-        
-        # Espera pela página principal
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/dashboard")
-        )
+    /* -------- HEADER -------- */
+    .header {
+      background: linear-gradient(90deg, #6a00ff, #9b00ff);
+      padding: 25px 40px;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
 
-        # ----------------------------------------------------------------------
-        # C - CREATE (RFS05 - Inserir Evento)
-        driver.get(self.base_url + "/eventos/novo") # Página de cadastro
-        print("-> Testando CREATE (Inserir Evento)")
+    .header h1 {
+      font-size: 26px;
+      letter-spacing: 1px;
+    }
 
-        # Preenchimento dos campos obrigatórios (Tabela 02)
-        driver.find_element(By.ID, "nomeEvento").send_keys(self.test_event_name)
-        driver.find_element(By.ID, "descricao").send_keys("Descrição do evento de teste.")
-        
-        # Data e Hora Início (Exemplo de formato DD/MM/AAAA HH:MM)
-        driver.find_element(By.ID, "dataInicio").send_keys("30/12/2026 10:00") 
-        driver.find_element(By.ID, "dataFim").send_keys("30/12/2026 18:00")
-        
-        # Local (CEP e outros) - Assumindo que o campo é composto. Adapte conforme sua tela.
-        driver.find_element(By.ID, "localCep").send_keys("37500000")
-        driver.find_element(By.ID, "localRua").send_keys("Rua Teste")
+    /* -------- CARD (Dark Neon Style) -------- */
+    .card {
+      background: #222226;
+      padding: 25px;
+      border-radius: 14px;
+      border: 1px solid #6a00ff;
+      margin-bottom: 32px;
+      box-shadow: 0 0 12px rgba(106,0,255,0.2);
+    }
 
-        # Selecionar Categoria - Conferência
-        driver.find_element(By.XPATH, "//select[@id='categoria']/option[text()='Conferência']").click()
-        
-        driver.find_element(By.ID, "btn-salvar-evento").click()
-        
-        # Verifica se o cadastro foi bem sucedido
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/eventos")
-        )
-        self.assertTrue("Evento cadastrado com sucesso" in driver.page_source)
+    .card h2 {
+      margin-bottom: 18px;
+      border-left: 4px solid #9b00ff;
+      padding-left: 10px;
+      font-size: 20px;
+      color: #d3b3ff;
+    }
 
-        # ----------------------------------------------------------------------
-        # R - READ (RFS08 - Consultar Evento)
-        print("-> Testando READ (Consultar Evento)")
-        
-        driver.get(self.base_url + "/eventos") # Lista de eventos
-        # Filtro por Nome do Evento (RFS08 - Filtros)
-        driver.find_element(By.ID, "filtro-nome").send_keys(self.test_event_name)
-        driver.find_element(By.ID, "btn-filtrar").click()
-        
-        # Espera o resultado e verifica o Nome do Evento (RFS08 - Resultados)
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]"))
-        )
-        self.assertTrue(self.test_event_name in driver.page_source)
+    /* -------- FORM -------- */
+    label {
+      display: block;
+      margin: 12px 0 4px;
+      font-weight: 600;
+      color: #d3b3ff;
+    }
 
-        # ----------------------------------------------------------------------
-        # U - UPDATE (RFS06 - Editar Evento)
-        print("-> Testando UPDATE (Editar Evento)")
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #2c2c31;
+      color: #fff;
+      font-size: 15px;
+    }
 
-        # Clica no botão de editar
-        edit_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]/../td/a[contains(text(), 'Editar')]")
-        edit_button.click()
+    textarea {
+      height: 90px;
+      resize: none;
+    }
 
-        # Espera pela página de edição
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/eventos/editar/")
-        )
+    /* -------- BUTTONS -------- */
+    button {
+      padding: 10px 18px;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 14px;
+      margin-right: 8px;
+      transition: 0.25s;
+    }
 
-        # Altera a Descrição (Todos os campos da Tabela 02 podem ser editados - RFS06)
-        nova_descricao = "Nova descrição editada via Selenium."
-        descricao_field = driver.find_element(By.ID, "descricao")
-        descricao_field.clear()
-        descricao_field.send_keys(nova_descricao)
-        
-        driver.find_element(By.ID, "btn-salvar-evento").click()
-        
-        # Verifica se a edição foi bem sucedida
-        WebDriverWait(driver, 10).until(
-            EC.url_contains("/eventos")
-        )
-        self.assertTrue("Evento alterado com sucesso" in driver.page_source)
+    #saveBtn {
+      background: #6a00ff;
+      color: white;
+    }
+    #saveBtn:hover {
+      background: #5200c7;
+    }
 
-        # ----------------------------------------------------------------------
-        # D - DELETE (RFS07 - Remover Evento)
-        # ATENÇÃO: RFS07 tem restrição: Apenas eventos sem nenhum ingresso vendido podem ser removidos.
-        print("-> Testando DELETE (Remover Evento)")
+    #clearBtn {
+      background: #3c3c3c;
+      color: #e6e6e6;
+    }
+    #clearBtn:hover {
+      background: #5a5a5a;
+    }
 
-        # Filtra novamente, se necessário, ou volta para a lista
-        driver.find_element(By.ID, "filtro-nome").clear()
-        driver.find_element(By.ID, "filtro-nome").send_keys(self.test_event_name)
-        driver.find_element(By.ID, "btn-filtrar").click()
-        
-        # Clica no botão de remover
-        delete_button = driver.find_element(By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]/../td/button[contains(text(), 'Remover')]")
-        delete_button.click()
-        
-        # Se houver pop-up de confirmação, aceite-o
-        # alert = driver.switch_to.alert
-        # alert.accept()
-        
-        # Verifica se a remoção foi bem sucedida
-        WebDriverWait(driver, 10).until(
-            EC.invisibility_of_element_located((By.XPATH, f"//td[contains(text(), '{self.test_event_name}')]"))
-        )
-        self.assertFalse(self.test_event_name in driver.page_source)
-        print("-> CRUD Evento Completo: SUCESSO")
+    #buscarBtn {
+      background: #6a00ff;
+      color: #fff;
+    }
+    #buscarBtn:hover {
+      background: #5200c7;
+    }
 
-    def tearDown(self):
-        # Encerra o navegador
-        self.driver.quit()
+    #resetBtn {
+      background: #aa0000;
+      color: #fff;
+    }
+    #resetBtn:hover {
+      background: #7a0000;
+    }
 
-if __name__ == '__main__':
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    /* -------- TABLE (Dark Dashboard Style) -------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #2a2a2f;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 12px rgba(106,0,255,0.25);
+    }
+
+    thead {
+      background: #6a00ff;
+      color: white;
+    }
+
+    th, td {
+      padding: 14px;
+      border-bottom: 1px solid #3d3d45;
+    }
+
+    tbody tr:hover {
+      background: #3a3a40;
+    }
+
+    .actions button {
+      padding: 6px 12px;
+      margin-right: 5px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .actions .edit {
+      background: #6a00ff;
+      color: #fff;
+    }
+    .actions .edit:hover {
+      background: #5200c7;
+    }
+
+    .actions .delete {
+      background: #aa0000;
+      color: #fff;
+    }
+    .actions .delete:hover {
+      background: #7a0000;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🎟️ Sistema de Eventos — Gerenciamento de Eventos</h1>
+  </div>
+
+  <div class="container">
+
+    <!-- CADASTRO -->
+    <div class="card">
+      <h2>Cadastro e Edição de Eventos</h2>
+
+      <form id="eventForm" data-mode="create">
+        <input type="hidden" id="eventId" />
+
+        <label>Nome do Evento*</label>
+        <input id="nome" required />
+
+        <label>Data*</label>
+        <input id="data" type="date" required />
+
+        <label>Local*</label>
+        <input id="local" required />
+
+        <label>Descrição</label>
+        <textarea id="descricao"></textarea>
+
+        <label>Categoria</label>
+        <select id="categoria">
+          <option value="">-- selecione --</option>
+          <option value="Palestra">Palestra</option>
+          <option value="Workshop">Workshop</option>
+          <option value="Seminário">Seminário</option>
+          <option value="Festival">Festival</option>
+        </select>
+
+        <button id="saveBtn" type="button">Salvar Evento</button>
+        <button id="clearBtn" type="button">Limpar</button>
+      </form>
+    </div>
+
+    <!-- CONSULTA -->
+    <div class="card">
+      <h2>Consulta de Eventos</h2>
+
+      <label>Pesquisar (Nome/Local/Categoria)</label>
+      <input id="filtro" />
+
+      <button id="buscarBtn" type="button">Buscar</button>
+      <button id="resetBtn" type="button">Reset</button>
+
+      <table id="eventTable" aria-label="tabela-eventos">
+        <thead>
+          <tr>
+            <th>Evento</th>
+            <th>Data</th>
+            <th>Local</th>
+            <th>Categoria</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    let events = [];
+    let nextEventId = 1;
+
+    function renderEvents(list) {
+      const tbody = document.querySelector('#eventTable tbody');
+      tbody.innerHTML = '';
+      list.forEach(ev => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ev.nome}</td>
+          <td>${ev.data}</td>
+          <td>${ev.local}</td>
+          <td>${ev.categoria || ''}</td>
+          <td class="actions">
+            <button class="edit" data-action="edit" data-id="${ev.id}">Editar</button>
+            <button class="delete" data-action="delete" data-id="${ev.id}">Excluir</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function resetEventForm() {
+      document.getElementById('eventForm').reset();
+      document.getElementById('eventId').value = '';
+      document.getElementById('eventForm').dataset.mode = 'create';
+    }
+
+    function saveEvent() {
+      const id = document.getElementById('eventId').value;
+      const nome = document.getElementById('nome').value.trim();
+      const data = document.getElementById('data').value;
+      const local = document.getElementById('local').value.trim();
+      const desc = document.getElementById('descricao').value.trim();
+      const categoria = document.getElementById('categoria').value;
+
+      if (!nome || !data || !local) {
+        alert("Preencha todos os campos obrigatórios!");
+        return;
+      }
+
+      if (id) {
+        const ev = events.find(e => e.id == id);
+        ev.nome = nome;
+        ev.data = data;
+        ev.local = local;
+        ev.descricao = desc;
+        ev.categoria = categoria;
+        alert("Evento atualizado!");
+      } else {
+        events.push({
+          id: nextEventId++,
+          nome,
+          data,
+          local,
+          descricao: desc,
+          categoria
+        });
+        alert("Evento cadastrado!");
+      }
+
+      renderEvents(events);
+      resetEventForm();
+    }
+
+    function editEvent(id) {
+      const ev = events.find(e => e.id == id);
+      document.getElementById('eventId').value = ev.id;
+      document.getElementById('nome').value = ev.nome;
+      document.getElementById('data').value = ev.data;
+      document.getElementById('local').value = ev.local;
+      document.getElementById('descricao').value = ev.descricao;
+      document.getElementById('categoria').value = ev.categoria;
+      document.getElementById('eventForm').dataset.mode = 'edit';
+    }
+
+    function deleteEvent(id) {
+      if (!confirm("Deseja realmente excluir este evento?")) return;
+      events = events.filter(e => e.id != id);
+      renderEvents(events);
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveEvent);
+    document.getElementById('clearBtn').addEventListener('click', resetEventForm);
+
+    document.getElementById('buscarBtn').addEventListener('click', () => {
+      const f = document.getElementById('filtro').value.trim().toLowerCase();
+      const res = events.filter(ev =>
+        (ev.nome + ev.local + ev.categoria).toLowerCase().includes(f)
+      );
+      renderEvents(res);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('filtro').value = "";
+      renderEvents(events);
+    });
+
+    document.querySelector('#eventTable tbody').addEventListener('click', ev => {
+      const btn = ev.target.closest('button');
+      if (!btn) return;
+
+      const id = btn.dataset.id;
+
+      if (btn.dataset.action === "edit") editEvent(id);
+      if (btn.dataset.action === "delete") deleteEvent(id);
+    });
+
+    renderEvents(events);
+  </script>
+
+</body>
+</html>
+
