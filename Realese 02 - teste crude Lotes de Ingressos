@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Lotes de Ingresso</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: Arial;
+    }
+    .header {
+      padding: 20px;
+      background: #ff6600;
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 25px auto;
+      padding: 20px;
+    }
+    .card {
+      background: #1b1b1b;
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px solid #ff6600;
+      margin-bottom: 30px;
+    }
+    label { display: block; margin-top: 10px; }
+    input, select {
+      width: 100%; padding: 10px;
+      margin-top: 4px;
+      border-radius: 6px;
+      border: none;
+      background: #333; color: #fff;
+    }
+    button {
+      padding: 10px 18px; margin-top: 15px; border: none;
+      background: #ff6600; color: #fff;
+      border-radius: 6px; font-weight: bold;
+      cursor: pointer;
+    }
+    table {
+      width: 100%; margin-top: 20px;
+      border-collapse: collapse; background: #222;
+    }
+    th {
+      background: #ff6600; padding: 10px;
+    }
+    td {
+      padding: 10px; border-bottom: 1px solid #444;
+    }
+    .actions button { background: #ff6600; margin-right: 5px; }
+    .actions .del { background: #cc0000; }
+  </style>
+</head>
+<body>
+
+<div class="header">🎫 Lotes de Ingressos</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Cadastrar / Editar Lote</h2>
+
+    <form id="loteForm" data-mode="create">
+      <input type="hidden" id="loteId">
+
+      <label>Evento*</label>
+      <select id="evento">
+        <option value="">Selecione...</option>
+        <option value="TechConf 2025">TechConf 2025</option>
+        <option value="Festival de Rock">Festival de Rock</option>
+      </select>
+
+      <label>Nome do Lote*</label>
+      <input id="nome">
+
+      <label>Preço*</label>
+      <input id="preco" type="number">
+
+      <label>Quantidade Total*</label>
+      <input id="quantidade" type="number">
+
+      <label>Início da Venda*</label>
+      <input id="inicio" type="datetime-local">
+
+      <label>Fim da Venda*</label>
+      <input id="fim" type="datetime-local">
+
+      <button id="save">Salvar</button>
+      <button type="button" id="clear">Limpar</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Consultar Lotes</h2>
+
+    <label>Filtrar por Evento</label>
+    <input id="filtro">
+
+    <button id="buscar">Buscar</button>
+    <button id="reset">Reset</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Evento</th>
+          <th>Lote</th>
+          <th>Preço</th>
+          <th>Qtd</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let lotes = [];
+  let nextId = 1;
+
+  function render(list) {
+    const tbody = document.getElementById('lista');
+    tbody.innerHTML = '';
+
+    list.forEach(l => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${l.evento}</td>
+        <td>${l.nome}</td>
+        <td>R$ ${l.preco}</td>
+        <td>${l.quantidade}</td>
+        <td class="actions">
+          <button data-id="${l.id}" class="edit">Editar</button>
+          <button data-id="${l.id}" class="del">Excluir</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('save').onclick = function(ev){
+    ev.preventDefault();
+    const id = document.getElementById('loteId').value;
+    const lote = {
+      evento: evento.value,
+      nome: nome.value,
+      preco: preco.value,
+      quantidade: quantidade.value,
+      inicio: inicio.value,
+      fim: fim.value
+    };
+
+    if(id){
+      let l = lotes.find(x=>x.id==id);
+      Object.assign(l, lote);
+      alert("Lote atualizado!");
+    } else {
+      lote.id = nextId++;
+      lotes.push(lote);
+      alert("Lote cadastrado!");
+    }
+    render(lotes);
+    document.getElementById('loteForm').reset();
+  };
+
+  document.getElementById('lista').onclick = function(e){
+    if(e.target.classList.contains("edit")){
+      let obj = lotes.find(l=>l.id==e.target.dataset.id);
+      Object.keys(obj).forEach(k=>{
+        if(document.getElementById(k)){
+          document.getElementById(k).value = obj[k];
+        }
+      });
+      loteForm.dataset.mode = "edit";
+    }
+    if(e.target.classList.contains("del")){
+      if(confirm("Excluir lote?")){
+        lotes = lotes.filter(l=>l.id!=e.target.dataset.id);
+        render(lotes);
+      }
+    }
+  };
+
+  document.getElementById('buscar').onclick = function(){
+    const f = filtro.value.toLowerCase();
+    render(lotes.filter(l=>l.evento.toLowerCase().includes(f)));
+  };
+
+  document.getElementById('reset').onclick = function(){
+    filtro.value = "";
+    render(lotes);
+  };
+</script>
+
+</body>
+</html>
